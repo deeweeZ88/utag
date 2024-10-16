@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UTAG - Map Tagging App</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
-    <script src="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.css" />
     <style>
         body {
@@ -110,12 +106,11 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
     <script src="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.js"></script>
     <script>
         // Initialize the map
-        var map = L.map('map').fitWorld();
+        var map = L.map('map').setView([51.505, -0.09], 13);
         var tagMarkers = []; // Store all markers
 
         // Set up the OpenStreetMap layer
@@ -135,7 +130,8 @@
         var geocoder = L.esri.Geocoding.geocodeService();
         var addressGeocoder = L.esri.Geocoding.geosearch({
             useMapBounds: false,
-            expanded: true
+            expanded: true,
+            placeholder: "Search for an address or place"
         }).addTo(map);
 
         // Handle form submission
@@ -157,6 +153,8 @@
                         alert('Address not found. Please try again.');
                     }
                 });
+            } else {
+                alert('Please enter an address.');
             }
         });
 
@@ -171,8 +169,6 @@
             );
 
             tagMarkers.push(newMarker); // Store the marker for later use
-
-            alert('Tag Submitted!');
         }
 
         // Sample data
@@ -220,7 +216,5 @@
             tagMarkers = [];
             alert('All tags have been cleared.');
         });
-    </script>
-</body>
-</html>
+
 
