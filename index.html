@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map Tagging App</title>
+    <title>UTAG - Map Tagging App</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
+    <script src="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.css" />
     <style>
         body {
             display: flex;
@@ -23,6 +26,9 @@
             padding: 20px;
             background-color: #f9f9f9;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         #formContainer {
             background-color: white;
@@ -30,10 +36,12 @@
             border: 1px solid #ccc;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
+            border-radius: 10px;
         }
         #tagForm label,
         #tagForm select,
-        #tagForm input {
+        #tagForm input,
+        #tagForm textarea {
             width: 100%;
             margin-bottom: 10px;
         }
@@ -42,40 +50,72 @@
             padding: 10px;
             margin-top: 10px;
             cursor: pointer;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #clearTagsButton {
+            background-color: #f44336;
+            margin-top: 20px;
+        }
+        #clearTagsButton:hover {
+            background-color: #e53935;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 0;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.8em;
         }
     </style>
 </head>
 <body>
     <div id="sidebar">
-        <div id="formContainer">
-            <form id="tagForm">
-                <label for="status">Select Status:</label><br />
-                <select id="status" name="status">
-                    <option value="power_out">Power Out</option>
-                    <option value="power_back_on">Power Back On</option>
-                    <option value="robbed">Robbed</option>
-                    <option value="garage_sale">Garage Sale</option>
-                </select>
-                <br /><br />
-                <label for="datetime">Date and Time:</label><br />
-                <input type="datetime-local" id="datetime" name="datetime" />
-                <br /><br />
-                <label for="address">Enter Address (Optional):</label><br />
-                <input type="text" id="address" name="address" placeholder="Enter address" />
-                <br /><br />
-                <button type="submit">Submit</button>
-            </form>
+        <div>
+            <h1>UTAG</h1>
+            <div id="formContainer">
+                <form id="tagForm">
+                    <label for="status">Select Status:</label><br />
+                    <select id="status" name="status">
+                        <option value="power_out">Power Out</option>
+                        <option value="power_back_on">Power Back On</option>
+                        <option value="robbed">Robbed</option>
+                        <option value="garage_sale">Garage Sale</option>
+                    </select>
+                    <br /><br />
+                    <label for="datetime">Date and Time:</label><br />
+                    <input type="datetime-local" id="datetime" name="datetime" />
+                    <br /><br />
+                    <label for="address">Enter Address (Optional):</label><br />
+                    <input type="text" id="address" name="address" placeholder="Enter address" />
+                    <br /><br />
+                    <label for="notes">Additional Notes (Optional):</label><br />
+                    <textarea id="notes" name="notes" placeholder="Enter additional notes"></textarea>
+                    <br /><br />
+                    <button type="submit">Submit</button>
+                </form>
+            </div>
+            <button id="clearTagsButton">Clear All Tags</button>
         </div>
+        <footer>&copy; 2024 UTAG</footer>
     </div>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
+    <script src="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.js"></script>
     <script>
         // Initialize the map
         var map = L.map('map').fitWorld();
-        var userMarker;
         var tagMarkers = []; // Store all markers
 
         // Set up the OpenStreetMap layer
@@ -92,44 +132,11 @@
         };
 
         // Initialize geocoder
-        var geocoder = L.Control.Geocoder.nominatim();
-
-        // Handle location found
-        function onLocationFound(e) {
-            var latlng = e.latlng;
-
-            // Add a marker at the user's location if not already added
-            if (!userMarker) {
-                userMarker = L.marker(latlng).addTo(map);
-            } else {
-                userMarker.setLatLng(latlng);
-            }
-
-            // Bind a popup with a form
-            userMarker.bindPopup(
-                `<b>Your Location</b><br>
-                 <button onclick="openForm()">Add Tag</button>`
-            ).openPopup();
-
-            // Center the map on the user's location
-            map.setView(latlng, 16);
-        }
-
-        // Handle location error
-        function onLocationError(e) {
-            alert(e.message);
-        }
-
-        // Locate the user
-        map.on('locationfound', onLocationFound);
-        map.on('locationerror', onLocationError);
-
-        map.locate({ setView: true, maxZoom: 16 });
-
-        // Open the form
-        function openForm() {
-            document.getElementById('formContainer').scrollIntoView({ behavior: 'smooth' });
-        }
+        var geocoder = L.esri.Geocoding.geocodeService();
+        var addressGeocoder = L.esri.Geocoding.geosearch({
+            useMapBounds: false,
+            expanded: true
+        }).addTo(map);
 
         // Handle form submission
         document.getElementById('tagForm').addEventListener('submit', function (e) {
@@ -138,35 +145,29 @@
             var status = document.getElementById('status').value;
             var datetime = document.getElementById('datetime').value;
             var addressInput = document.getElementById('address').value;
+            var notes = document.getElementById('notes').value;
 
             if (addressInput) {
                 // Use the provided address to get coordinates
-                geocoder.geocode(addressInput, function(results) {
-                    if (results.length > 0) {
-                        var latlng = results[0].center;
-                        addMarker(latlng, status, datetime, results[0].name);
+                geocoder.geocode().text(addressInput).run(function (error, results) {
+                    if (results.results.length > 0) {
+                        var latlng = results.results[0].latlng;
+                        addMarker(latlng, status, datetime, results.results[0].text, notes);
                     } else {
                         alert('Address not found. Please try again.');
                     }
-                });
-            } else {
-                // Use user's current location
-                var latlng = userMarker.getLatLng();
-                geocoder.reverse(latlng, map.options.crs.scale(map.getZoom()), function(results) {
-                    var address = results[0] ? results[0].name : 'Address not found';
-                    addMarker(latlng, status, datetime, address);
                 });
             }
         });
 
         // Function to add marker
-        function addMarker(latlng, status, datetime, address) {
+        function addMarker(latlng, status, datetime, address, notes) {
             var newMarker = L.circleMarker(latlng, {
                 color: statusColors[status],
                 radius: 8
             }).addTo(map)
             .bindPopup(
-                `<b>Status:</b> ${status}<br><b>Date and Time:</b> ${datetime}<br><b>Address:</b> ${address}`
+                `<b>Status:</b> ${status}<br><b>Date and Time:</b> ${datetime}<br><b>Address:</b> ${address}<br><b>Notes:</b> ${notes}`
             );
 
             tagMarkers.push(newMarker); // Store the marker for later use
@@ -180,25 +181,27 @@
                 latlng: [51.505, -0.09],
                 status: 'power_out',
                 datetime: '2024-10-15T09:00',
+                notes: 'Power outage due to weather'
             },
             {
                 latlng: [51.51, -0.1],
                 status: 'garage_sale',
                 datetime: '2024-10-16T14:00',
+                notes: 'Lots of furniture and books available'
             },
         ];
 
         // Function to display sample tags
         function displaySampleTags() {
             sampleTags.forEach(function (tag) {
-                geocoder.reverse(tag.latlng, map.options.crs.scale(map.getZoom()), function(results) {
-                    var address = results[0] ? results[0].name : 'Address not found';
+                geocoder.reverse().latlng(tag.latlng).run(function (error, result) {
+                    var address = result.address.Match_addr || 'Address not found';
                     var marker = L.circleMarker(tag.latlng, {
                         color: statusColors[tag.status],
                         radius: 8
                     }).addTo(map)
                     .bindPopup(
-                        `<b>Status:</b> ${tag.status}<br><b>Date and Time:</b> ${tag.datetime}<br><b>Address:</b> ${address}`
+                        `<b>Status:</b> ${tag.status}<br><b>Date and Time:</b> ${tag.datetime}<br><b>Address:</b> ${address}<br><b>Notes:</b> ${tag.notes}`
                     );
 
                     tagMarkers.push(marker); // Store the marker for later use
@@ -208,6 +211,16 @@
 
         // Call the function
         displaySampleTags();
+
+        // Clear all tags
+        document.getElementById('clearTagsButton').addEventListener('click', function () {
+            tagMarkers.forEach(function(marker) {
+                map.removeLayer(marker);
+            });
+            tagMarkers = [];
+            alert('All tags have been cleared.');
+        });
     </script>
 </body>
 </html>
+
