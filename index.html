@@ -134,6 +134,15 @@
             placeholder: "Search for an address or place"
         }).addTo(map);
 
+        // Add geocoder result layer
+        var resultsLayer = L.layerGroup().addTo(map);
+        addressGeocoder.on("results", function(data) {
+            resultsLayer.clearLayers();
+            for (var i = 0; i < data.results.length; i++) {
+                resultsLayer.addLayer(L.marker(data.results[i].latlng));
+            }
+        });
+
         // Handle form submission
         document.getElementById('tagForm').addEventListener('submit', function (e) {
             e.preventDefault();
@@ -190,18 +199,15 @@
         // Function to display sample tags
         function displaySampleTags() {
             sampleTags.forEach(function (tag) {
-                geocoder.reverse().latlng(tag.latlng).run(function (error, result) {
-                    var address = result.address.Match_addr || 'Address not found';
-                    var marker = L.circleMarker(tag.latlng, {
-                        color: statusColors[tag.status],
-                        radius: 8
-                    }).addTo(map)
-                    .bindPopup(
-                        `<b>Status:</b> ${tag.status}<br><b>Date and Time:</b> ${tag.datetime}<br><b>Address:</b> ${address}<br><b>Notes:</b> ${tag.notes}`
-                    );
+                var marker = L.circleMarker(tag.latlng, {
+                    color: statusColors[tag.status],
+                    radius: 8
+                }).addTo(map)
+                .bindPopup(
+                    `<b>Status:</b> ${tag.status}<br><b>Date and Time:</b> ${tag.datetime}<br><b>Notes:</b> ${tag.notes}`
+                );
 
-                    tagMarkers.push(marker); // Store the marker for later use
-                });
+                tagMarkers.push(marker); // Store the marker for later use
             });
         }
 
@@ -209,12 +215,5 @@
         displaySampleTags();
 
         // Clear all tags
-        document.getElementById('clearTagsButton').addEventListener('click', function () {
-            tagMarkers.forEach(function(marker) {
-                map.removeLayer(marker);
-            });
-            tagMarkers = [];
-            alert('All tags have been cleared.');
-        });
-
+        document.getElementById('clearTagsButton').
 
